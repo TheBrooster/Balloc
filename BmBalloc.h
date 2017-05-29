@@ -56,30 +56,33 @@ namespace BM
 			{
 				currentBlock->pNext = currentBlock + 1;
 			}
-			while ( ++currentBlock < lastBlock);
+			while (++currentBlock < lastBlock);
 
 			lastBlock->pNext = nullptr;
 		}
 
 		~Balloc(void)
 		{
+			std::lock_guard<std::mutex> l(mMutex);
 			assert(mFreeCount == NumBlocks);
 		}
 
 		inline void* Allocate()
 		{
+			void* returnPtr = nullptr;
+			
 			std::lock_guard<std::mutex> l(mMutex);
-			if (mFreeCount == 0)
-				return nullptr;
-
-			void* returnPtr = mFreeHead;
-			mFreeHead = mFreeHead->pNext;
-
-			--mFreeCount;
+			if (mFreeCount > 0)
+			{
+				returnPtr = mFreeHead;
+				mFreeHead = mFreeHead->pNext;
+				--mFreeCount;
+			}
+			
 			return returnPtr;
 		}
 
-		inline bool ContainsBlock(void* ptr)
+		inline bool ContainsBlock(const void* const ptr) const
 		{
 			auto blockPtr = static_cast<Block*>(ptr);
 			auto index = blockPtr - mBlocks.data();
@@ -88,20 +91,22 @@ namespace BM
 
 		inline bool Free(void* ptr)
 		{
+			bool returnValue = false;
 			if ( ptr != nullptr)
 			{
-				std::lock_guard<std::mutex> l(mMutex);
 				if (ContainsBlock(ptr))
 				{
+					std::lock_guard<std::mutex> l(mMutex);
+					
 					auto blockPtr = static_cast<Block*>(ptr);
 					blockPtr->pNext = mFreeHead;
 					mFreeHead = blockPtr;
 
 					++mFreeCount;
-					return true;
+					returnValue = true;
 				}
 			}
-			return false;
+			return returnValue;
 		}
 
 	private:
