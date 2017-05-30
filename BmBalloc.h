@@ -46,9 +46,10 @@ namespace BM
 
 	public:
 		Balloc(void)
-			: mFreeHead(mBlocks.data())
-			, mFreeCount(NumBlocks)
+			: mFreeCount(NumBlocks)
 		{
+			mFreeHead = mBlocks.data();
+			
 			// Weave free list into block storage array.
 			auto currentBlock = mFreeHead;
 			auto lastBlock = mFreeHead + (NumBlocks - 1);
@@ -82,9 +83,9 @@ namespace BM
 			return returnPtr;
 		}
 
-		inline bool ContainsBlock(const void* const ptr) const
+		inline bool ContainsBlock(const void* ptr) const
 		{
-			auto blockPtr = static_cast<Block*>(ptr);
+			auto blockPtr = static_cast<const Block*>(ptr);
 			auto index = blockPtr - mBlocks.data();
 			return (index >= 0 && index < NumBlocks);
 		}
