@@ -33,9 +33,10 @@
 
 namespace BM
 {
-	template<unsigned int BytesPerBlock, unsigned int NumBlocks>
+	template<unsigned int BytesPerBlock, unsigned int BlockCount>
 	class Balloc
 	{
+	private:
 		union Block
 		{
 			uint8_t bytes[BytesPerBlock];
@@ -43,32 +44,48 @@ namespace BM
 		};
 
 		static_assert(BytesPerBlock >= sizeof(Block*), "BytesPerBlock too small");
-		static_assert(NumBlocks > 0, "NumBlocks too small");
+		static_assert(BlockCount > 0, "BlockCount too small");
+
+		Block* mFreeHead;
+		unsigned int mFreeCount;
+		unsigned int mLowTideMark;
+		std::mutex mMutex;
+		std::array<Block, BlockCount> mBlocks;
+
+		void* mBlocksFirst;
+		void* mBlocksLast;
+
+		Balloc(const Balloc& other) = delete; // non construction-copyable
+		Balloc& operator=(const Balloc&) = delete; // non copyable
 
 	public:
 		Balloc(void)
-		: mFreeCount(NumBlocks)
+		: mFreeCount(BlockCount)
+		, mLowTideMark(BlockCount)
 		{
 			mFreeHead = mBlocks.data();
 
-			// Weave free list into block storage array.
+			// Store a linked list of free blocks in the block storage.
 			auto currentBlock = mFreeHead;
-			auto lastBlock = mFreeHead + (NumBlocks - 1);
+			auto lastBlock = mFreeHead + (BlockCount - 1);
 			do
 			{
 				currentBlock->pNext = currentBlock + 1;
 			}
 			while (++currentBlock < lastBlock);
-
 			lastBlock->pNext = nullptr;
+
+			// Store pointers to the first and last blocks for use in the Contains method.
+			mBlocksFirst = mFreeHead;
+			mBlocksLast = lastBlock;
 		}
 
 		~Balloc(void)
 		{
 			std::lock_guard<std::mutex> l(mMutex);
-			if (mFreeCount != NumBlocks)
+			if (mFreeCount != BlockCount)
 			{
-				std::fprintf(stderr, "[BmBalloc] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, NumBlocks);
+				std::fprintf(stderr, "[BM::Balloc] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
 				assert(false);
 			}
 		}
@@ -83,47 +100,40 @@ namespace BM
 				returnPtr = mFreeHead;
 				mFreeHead = mFreeHead->pNext;
 				--mFreeCount;
+
+				if (mFreeCount < mLowTideMark)
+					mLowTideMark = mFreeCount;
 			}
 			else
 			{
-				std::fprintf(stderr, "[BmBalloc] Out of blocks: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, NumBlocks);
+				std::fprintf(stderr, "[BM::Balloc] Out of blocks: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
 			}
 
 			return returnPtr;
 		}
 
-		inline bool ContainsBlock(const void* const ptr) const
+		inline bool Contains(const void* const ptr) const
 		{
-			auto blockPtr = static_cast<const Block* const>(ptr);
-			auto index = blockPtr - mBlocks.data();
-			return (index >= 0 && index < NumBlocks);
+			return (ptr >= mBlocksFirst) && (ptr <= mBlocksLast);
 		}
 
 		inline bool Free(void* ptr)
 		{
 			bool returnValue = false;
-			if (ptr != nullptr)
+
+			if (Contains(ptr))
 			{
-				if (ContainsBlock(ptr))
-				{
-					std::lock_guard<std::mutex> l(mMutex);
+				std::lock_guard<std::mutex> l(mMutex);
 
-					auto blockPtr = static_cast<Block*>(ptr);
-					blockPtr->pNext = mFreeHead;
-					mFreeHead = blockPtr;
+				auto blockPtr = static_cast<Block*>(ptr);
+				blockPtr->pNext = mFreeHead;
+				mFreeHead = blockPtr;
 
-					++mFreeCount;
-					returnValue = true;
-				}
+				++mFreeCount;
+				returnValue = true;
 			}
+
 			return returnValue;
 		}
-
-	private:
-
-		Block* mFreeHead;
-		unsigned int mFreeCount;
-		std::mutex mMutex;
-		std::array<Block, NumBlocks> mBlocks;
 	};
 }
