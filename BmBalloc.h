@@ -1,13 +1,13 @@
 /**
 * Very Simple Block Allocator
-* 
+*
 * Copyright (c) Bruce McNeish
-* All rights reserved. 
+* All rights reserved.
 *
 * MIT License
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy of this
-* software and associated documentation files (the "Software"), to deal in the Software 
+* software and associated documentation files (the "Software"), to deal in the Software
 * without restriction, including without limitation the rights to use, copy, modify, merge,
 * publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
 * to whom the Software is furnished to do so, subject to the following conditions:
@@ -26,6 +26,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdio>
 #include <cassert>
 #include <array>
 #include <mutex>
@@ -40,16 +41,16 @@ namespace BM
 			uint8_t bytes[BytesPerBlock];
 			Block* pNext;
 		};
-		
+
 		static_assert(BytesPerBlock >= sizeof(Block*), "BytesPerBlock too small");
 		static_assert(NumBlocks > 0, "NumBlocks too small");
 
 	public:
 		Balloc(void)
-			: mFreeCount(NumBlocks)
+		: mFreeCount(NumBlocks)
 		{
 			mFreeHead = mBlocks.data();
-			
+
 			// Weave free list into block storage array.
 			auto currentBlock = mFreeHead;
 			auto lastBlock = mFreeHead + (NumBlocks - 1);
@@ -65,13 +66,17 @@ namespace BM
 		~Balloc(void)
 		{
 			std::lock_guard<std::mutex> l(mMutex);
-			assert(mFreeCount == NumBlocks);
+			if (mFreeCount != NumBlocks)
+			{
+				std::fprintf(stderr, "[BmBalloc] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, NumBlocks);
+				assert(false);
+			}
 		}
 
 		inline void* Allocate()
 		{
 			void* returnPtr = nullptr;
-			
+
 			std::lock_guard<std::mutex> l(mMutex);
 			if (mFreeCount > 0)
 			{
@@ -79,13 +84,17 @@ namespace BM
 				mFreeHead = mFreeHead->pNext;
 				--mFreeCount;
 			}
-			
+			else
+			{
+				std::fprintf(stderr, "[BmBalloc] Out of blocks: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, NumBlocks);
+			}
+
 			return returnPtr;
 		}
 
-		inline bool ContainsBlock(const void* ptr) const
+		inline bool ContainsBlock(const void* const ptr) const
 		{
-			auto blockPtr = static_cast<const Block*>(ptr);
+			auto blockPtr = static_cast<const Block* const>(ptr);
 			auto index = blockPtr - mBlocks.data();
 			return (index >= 0 && index < NumBlocks);
 		}
@@ -93,12 +102,12 @@ namespace BM
 		inline bool Free(void* ptr)
 		{
 			bool returnValue = false;
-			if ( ptr != nullptr)
+			if (ptr != nullptr)
 			{
 				if (ContainsBlock(ptr))
 				{
 					std::lock_guard<std::mutex> l(mMutex);
-					
+
 					auto blockPtr = static_cast<Block*>(ptr);
 					blockPtr->pNext = mFreeHead;
 					mFreeHead = blockPtr;
@@ -118,4 +127,3 @@ namespace BM
 		std::array<Block, NumBlocks> mBlocks;
 	};
 }
-
