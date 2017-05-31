@@ -29,11 +29,11 @@
 #include <cstdio>
 #include <cassert>
 #include <array>
-#include <mutex>
+#include <atomic>
 
 namespace BM
 {
-	template<unsigned int BytesPerBlock, unsigned int BlockCount>
+	template<const unsigned int BytesPerBlock, const unsigned int BlockCount>
 	class Balloc
 	{
 	private:
@@ -46,28 +46,29 @@ namespace BM
 		static_assert(BytesPerBlock >= sizeof(Block*), "BytesPerBlock too small");
 		static_assert(BlockCount > 0, "BlockCount too small");
 
-		Block* mFreeHead;
-		unsigned int mFreeCount;
+		std::atomic<Block*> mFreeHead;
+		std::atomic<bool> mLock;
+		std::atomic<unsigned int> mFreeCount;
 		unsigned int mLowTideMark;
-		std::mutex mMutex;
 		std::array<Block, BlockCount> mBlocks;
 
 		void* mBlocksFirst;
 		void* mBlocksLast;
 
-		Balloc(const Balloc& other) = delete; // non construction-copyable
-		Balloc& operator=(const Balloc&) = delete; // non copyable
+		Balloc(const Balloc& other) {} // non construction-copyable
+		Balloc& operator=(const Balloc&) {} // non copyable
 
 	public:
 		Balloc(void)
-		: mFreeCount(BlockCount)
+		: mLock(false)
+		, mFreeCount(BlockCount)
 		, mLowTideMark(BlockCount)
 		{
 			mFreeHead = mBlocks.data();
 
 			// Store a linked list of free blocks in the block storage.
-			auto currentBlock = mFreeHead;
-			auto lastBlock = mFreeHead + (BlockCount - 1);
+			auto currentBlock = mFreeHead.load();
+			auto lastBlock = mFreeHead.load() + (BlockCount - 1);
 			do
 			{
 				currentBlock->pNext = currentBlock + 1;
@@ -76,15 +77,14 @@ namespace BM
 			lastBlock->pNext = nullptr;
 
 			// Store pointers to the first and last blocks for use in the Contains method.
-			mBlocksFirst = mFreeHead;
+			mBlocksFirst = mFreeHead.load();
 			mBlocksLast = lastBlock;
 		}
 
 		~Balloc(void)
 		{
-			std::lock_guard<std::mutex> l(mMutex);
 			if (mFreeCount != BlockCount)
-			{
+			{ 
 				std::fprintf(stderr, "[BM::Balloc] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
 				assert(false);
 			}
@@ -94,20 +94,24 @@ namespace BM
 		{
 			void* returnPtr = nullptr;
 
-			std::lock_guard<std::mutex> l(mMutex);
-			if (mFreeCount > 0)
-			{
-				returnPtr = mFreeHead;
-				mFreeHead = mFreeHead->pNext;
-				--mFreeCount;
+			// Entering critical section...
+			bool expected = false;
+			while(mLock.compare_exchange_strong(expected, true) && !expected);
 
+			if (mFreeHead.load() != nullptr)
+				returnPtr = mFreeHead.exchange(mFreeHead.load()->pNext);
+
+			mLock = false;
+			// ...left critical section.
+
+			if (returnPtr != nullptr)
+			{
+				--mFreeCount;
 				if (mFreeCount < mLowTideMark)
 					mLowTideMark = mFreeCount;
 			}
 			else
-			{
 				std::fprintf(stderr, "[BM::Balloc] Out of blocks: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
-			}
 
 			return returnPtr;
 		}
@@ -119,21 +123,14 @@ namespace BM
 
 		inline bool Free(void* ptr)
 		{
-			bool returnValue = false;
-
-			if (Contains(ptr))
+			bool containsPtr = Contains(ptr);
+			if (containsPtr)
 			{
-				std::lock_guard<std::mutex> l(mMutex);
-
 				auto blockPtr = static_cast<Block*>(ptr);
-				blockPtr->pNext = mFreeHead;
-				mFreeHead = blockPtr;
-
+				blockPtr->pNext = mFreeHead.exchange(blockPtr);
 				++mFreeCount;
-				returnValue = true;
 			}
-
-			return returnValue;
+			return containsPtr;
 		}
 	};
 }
