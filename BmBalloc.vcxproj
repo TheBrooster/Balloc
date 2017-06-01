@@ -65,6 +65,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BmAtomicSpinLock.h" />
     <ClInclude Include="BmBalloc.h" />
   </ItemGroup>
   <ItemGroup>

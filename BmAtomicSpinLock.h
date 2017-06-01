@@ -1,7 +1,7 @@
 /**
 * Atomic Spin Lock
 *
-* Copyright (c) Bruce McNeish
+* Copyright (c) Bruce McNeish 2017
 * All rights reserved.
 *
 * MIT License
