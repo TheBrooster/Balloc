@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BmBalloc.h">
+    <ClInclude Include="BmAtomicSpinLock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BmAtomicSpinLock.h">
+    <ClInclude Include="BmBlockAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
