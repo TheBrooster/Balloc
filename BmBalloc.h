@@ -25,47 +25,15 @@
 
 #pragma once
 
+#include "BmAtomicSpinLock.h"
+
 #include <cstdint>
 #include <cstdio>
 #include <cassert>
 #include <array>
-#include <atomic>
 
 namespace BM
 {
-	class AtomicSpinLock
-	{
-	private:
-		AtomicSpinLock(const AtomicSpinLock& other)	{} // non construction-copyable
-		AtomicSpinLock& operator=(const AtomicSpinLock&) { return *this; } // non copyable
-
-		std::atomic<bool> mLocked;
-
-	public:
-		AtomicSpinLock()
-		: mLocked(false)
-		{}
-
-		~AtomicSpinLock()
-		{
-			unlock();
-		}
-
-		inline void lock()
-		{
-			bool expected = false;
-			while (!mLocked.compare_exchange_weak(expected, true))
-			{
-				expected = false;
-			}
-		}
-
-		inline void unlock()
-		{
-			mLocked.store(false);
-		}
-	};
-
 	template<const unsigned int BytesPerBlock, const unsigned int BlockCount>
 	class BlockAllocator
 	{
