@@ -1,10 +1,10 @@
-#include "BmUtils/BmBlockAllocator.h"
+#include "../../BmUtils/BmBlockAllocator.h"
 
 #include <vector>
 #include <random>
 #include <algorithm>
 
-int main(int argc, char argv[])
+int main(int argc, const char * argv[])
 {
 	char* dummy = new char();
 	

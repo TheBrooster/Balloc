@@ -65,11 +65,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="BmAtomicSpinLock.h" />
-    <ClInclude Include="BmBlockAllocator.h" />
+    <ClInclude Include="Y:\Projects\BmBalloc\BmUtils\BmAtomicSpinLock.h" />
+    <ClInclude Include="Y:\Projects\BmBalloc\BmUtils\BmBlockAllocator.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Y:\Projects\BmBalloc\builds\visualStudio\main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
