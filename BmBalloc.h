@@ -33,42 +33,63 @@
 
 namespace BM
 {
+	class AtomicLock
+	{
+	private:
+		AtomicLock(const AtomicLock& other)	{} // non construction-copyable
+		AtomicLock& operator=(const AtomicLock&) { return *this; } // non copyable
+
+		std::atomic<bool>* mLock;
+
+	public:
+		AtomicLock(std::atomic<bool>* pLock)
+		: mLock(pLock)
+		{
+			bool expected = false;
+			while (mLock->compare_exchange_weak(expected, true) && !expected);
+		}
+		~AtomicLock()
+		{
+			mLock->store(false);
+		}
+	};
+
 	template<const unsigned int BytesPerBlock, const unsigned int BlockCount>
 	class Balloc
 	{
 	private:
+		static_assert(BytesPerBlock >= sizeof(Block*), "BytesPerBlock too small");
+		static_assert(BlockCount > 0, "BlockCount too small");
+
+		Balloc(const Balloc& other) {} // non construction-copyable
+		Balloc& operator=(const Balloc&) { return *this; } // non copyable
+
 		union Block
 		{
 			uint8_t bytes[BytesPerBlock];
 			Block* pNext;
 		};
 
-		static_assert(BytesPerBlock >= sizeof(Block*), "BytesPerBlock too small");
-		static_assert(BlockCount > 0, "BlockCount too small");
-
-		std::atomic<Block*> mFreeHead;
+		Block* mFreeHead;
 		std::atomic<bool> mLock;
-		std::atomic<unsigned int> mFreeCount;
+		unsigned int mFreeCount;
 		unsigned int mLowTideMark;
 		std::array<Block, BlockCount> mBlocks;
 
 		void* mBlocksFirst;
 		void* mBlocksLast;
 
-		Balloc(const Balloc& other) {} // non construction-copyable
-		Balloc& operator=(const Balloc&) {} // non copyable
-
 	public:
 		Balloc(void)
-		: mLock(false)
-		, mFreeCount(BlockCount)
-		, mLowTideMark(BlockCount)
+			: mLock(false)
+			, mFreeCount(BlockCount)
+			, mLowTideMark(BlockCount)
 		{
 			mFreeHead = mBlocks.data();
 
 			// Store a linked list of free blocks in the block storage.
-			auto currentBlock = mFreeHead.load();
-			auto lastBlock = mFreeHead.load() + (BlockCount - 1);
+			auto currentBlock = mFreeHead;
+			auto lastBlock = mFreeHead + (BlockCount - 1);
 			do
 			{
 				currentBlock->pNext = currentBlock + 1;
@@ -77,14 +98,14 @@ namespace BM
 			lastBlock->pNext = nullptr;
 
 			// Store pointers to the first and last blocks for use in the Contains method.
-			mBlocksFirst = mFreeHead.load();
+			mBlocksFirst = mFreeHead;
 			mBlocksLast = lastBlock;
 		}
 
 		~Balloc(void)
 		{
 			if (mFreeCount != BlockCount)
-			{ 
+			{
 				std::fprintf(stderr, "[BM::Balloc] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
 				assert(false);
 			}
@@ -95,18 +116,21 @@ namespace BM
 			void* returnPtr = nullptr;
 
 			// Entering critical section...
-			bool expected = false;
-			while(mLock.compare_exchange_strong(expected, true) && !expected);
-
-			if (mFreeHead.load() != nullptr)
-				returnPtr = mFreeHead.exchange(mFreeHead.load()->pNext);
-
-			mLock = false;
+			//
+			{
+				AtomicLock l(&mLock);
+				if (mFreeHead != nullptr)
+				{
+					returnPtr = mFreeHead;
+					mFreeHead = mFreeHead->pNext;
+					--mFreeCount;
+				}
+			}
+			//
 			// ...left critical section.
 
 			if (returnPtr != nullptr)
 			{
-				--mFreeCount;
 				if (mFreeCount < mLowTideMark)
 					mLowTideMark = mFreeCount;
 			}
@@ -127,8 +151,16 @@ namespace BM
 			if (containsPtr)
 			{
 				auto blockPtr = static_cast<Block*>(ptr);
-				blockPtr->pNext = mFreeHead.exchange(blockPtr);
-				++mFreeCount;
+				// Entering critical section...
+				//
+				{
+					AtomicLock l(&mLock);
+					blockPtr->pNext = mFreeHead;
+					mFreeHead = blockPtr;
+					++mFreeCount;
+				}
+				//
+				// ...left critical section.
 			}
 			return containsPtr;
 		}
