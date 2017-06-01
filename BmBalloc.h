@@ -55,20 +55,20 @@ namespace BM
 	};
 
 	template<const unsigned int BytesPerBlock, const unsigned int BlockCount>
-	class Balloc
+	class BlockAllocator
 	{
 	private:
-		static_assert(BytesPerBlock >= sizeof(Block*), "BytesPerBlock too small");
-		static_assert(BlockCount > 0, "BlockCount too small");
-
-		Balloc(const Balloc& other) {} // non construction-copyable
-		Balloc& operator=(const Balloc&) { return *this; } // non copyable
+		BlockAllocator(const BlockAllocator& other) {} // non construction-copyable
+		BlockAllocator& operator=(const BlockAllocator&) { return *this; } // non copyable
 
 		union Block
 		{
 			uint8_t bytes[BytesPerBlock];
 			Block* pNext;
 		};
+
+		static_assert(BytesPerBlock >= sizeof(Block*), "BytesPerBlock too small");
+		static_assert(BlockCount > 0, "BlockCount too small");
 
 		Block* mFreeHead;
 		std::atomic<bool> mLock;
@@ -80,7 +80,7 @@ namespace BM
 		void* mBlocksLast;
 
 	public:
-		Balloc(void)
+		BlockAllocator(void)
 			: mLock(false)
 			, mFreeCount(BlockCount)
 			, mLowTideMark(BlockCount)
@@ -102,11 +102,11 @@ namespace BM
 			mBlocksLast = lastBlock;
 		}
 
-		~Balloc(void)
+		~BlockAllocator(void)
 		{
 			if (mFreeCount != BlockCount)
 			{
-				std::fprintf(stderr, "[BM::Balloc] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
+				std::fprintf(stderr, "[BM::BlockAllocator] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
 				assert(false);
 			}
 		}
@@ -135,7 +135,7 @@ namespace BM
 					mLowTideMark = mFreeCount;
 			}
 			else
-				std::fprintf(stderr, "[BM::Balloc] Out of blocks: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
+				std::fprintf(stderr, "[BM::BlockAllocator] Out of blocks: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
 
 			return returnPtr;
 		}
