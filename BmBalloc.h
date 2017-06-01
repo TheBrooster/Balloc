@@ -33,24 +33,36 @@
 
 namespace BM
 {
-	class AtomicLock
+	class AtomicSpinLock
 	{
 	private:
-		AtomicLock(const AtomicLock& other)	{} // non construction-copyable
-		AtomicLock& operator=(const AtomicLock&) { return *this; } // non copyable
+		AtomicSpinLock(const AtomicSpinLock& other)	{} // non construction-copyable
+		AtomicSpinLock& operator=(const AtomicSpinLock&) { return *this; } // non copyable
 
-		std::atomic<bool>* mLock;
+		std::atomic<bool> mLocked;
 
 	public:
-		AtomicLock(std::atomic<bool>* pLock)
-		: mLock(pLock)
+		AtomicSpinLock()
+		: mLocked(false)
+		{}
+
+		~AtomicSpinLock()
+		{
+			unlock();
+		}
+
+		inline void lock()
 		{
 			bool expected = false;
-			while (mLock->compare_exchange_weak(expected, true) && !expected);
+			while (!mLocked.compare_exchange_weak(expected, true))
+			{
+				expected = false;
+			}
 		}
-		~AtomicLock()
+
+		inline void unlock()
 		{
-			mLock->store(false);
+			mLocked.store(false);
 		}
 	};
 
@@ -71,7 +83,7 @@ namespace BM
 		static_assert(BlockCount > 0, "BlockCount too small");
 
 		Block* mFreeHead;
-		std::atomic<bool> mLock;
+		AtomicSpinLock mLock;
 		unsigned int mFreeCount;
 		unsigned int mLowTideMark;
 		std::array<Block, BlockCount> mBlocks;
@@ -81,8 +93,7 @@ namespace BM
 
 	public:
 		BlockAllocator(void)
-			: mLock(false)
-			, mFreeCount(BlockCount)
+			: mFreeCount(BlockCount)
 			, mLowTideMark(BlockCount)
 		{
 			mFreeHead = mBlocks.data();
@@ -111,23 +122,25 @@ namespace BM
 			}
 		}
 
-		inline void* Allocate()
+		inline bool contains(const void* const ptr) const
+		{
+			return (ptr >= mBlocksFirst) && (ptr <= mBlocksLast);
+		}
+
+		inline void* allocate()
 		{
 			void* returnPtr = nullptr;
 
-			// Entering critical section...
-			//
+			mLock.lock();
+
+			if (mFreeHead != nullptr)
 			{
-				AtomicLock l(&mLock);
-				if (mFreeHead != nullptr)
-				{
-					returnPtr = mFreeHead;
-					mFreeHead = mFreeHead->pNext;
-					--mFreeCount;
-				}
+				returnPtr = mFreeHead;
+				mFreeHead = mFreeHead->pNext;
+				--mFreeCount;
 			}
-			//
-			// ...left critical section.
+
+			mLock.unlock();
 
 			if (returnPtr != nullptr)
 			{
@@ -140,27 +153,20 @@ namespace BM
 			return returnPtr;
 		}
 
-		inline bool Contains(const void* const ptr) const
+		inline bool free(void* ptr)
 		{
-			return (ptr >= mBlocksFirst) && (ptr <= mBlocksLast);
-		}
-
-		inline bool Free(void* ptr)
-		{
-			bool containsPtr = Contains(ptr);
+			bool containsPtr = contains(ptr);
 			if (containsPtr)
 			{
 				auto blockPtr = static_cast<Block*>(ptr);
-				// Entering critical section...
-				//
-				{
-					AtomicLock l(&mLock);
-					blockPtr->pNext = mFreeHead;
-					mFreeHead = blockPtr;
-					++mFreeCount;
-				}
-				//
-				// ...left critical section.
+
+				mLock.lock();
+
+				blockPtr->pNext = mFreeHead;
+				mFreeHead = blockPtr;
+				++mFreeCount;
+
+				mLock.unlock();
 			}
 			return containsPtr;
 		}
