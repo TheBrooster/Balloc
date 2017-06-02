@@ -1,29 +1,7 @@
 #pragma once
 
-/**
-* Very Simple Block Allocator
-*
-* Copyright (c) Bruce McNeish 2017
-* All rights reserved.
-*
-* MIT License
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this
-* software and associated documentation files (the "Software"), to deal in the Software
-* without restriction, including without limitation the rights to use, copy, modify, merge,
-* publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
-* to whom the Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all copies or
-* substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-* PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
-* FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-* OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-* DEALINGS IN THE SOFTWARE.
-*/
+// Copyright Bruce McNeish 2017
+// Distributed under the MIT License, see accompanying file LICENSE.txt
 
 #include "BmAtomicSpinLock.h"
 
@@ -47,8 +25,8 @@ namespace BM
 			Block* pNext;
 		};
 
-		static_assert(BytesPerBlock >= sizeof(Block*), "BytesPerBlock too small");
-		static_assert(BlockCount > 0, "BlockCount too small");
+		static_assert(BytesPerBlock >= sizeof(Block*), "BytesPerBlock too small.  Needs to be at least the size of a pointer.");
+		static_assert(BlockCount > 0, "BlockCount cannot be 0.  Suggest 1024 minimum.");
 
 		Block* mFreeHead;
 		AtomicSpinLock mLock;
@@ -67,18 +45,15 @@ namespace BM
 			mFreeHead = mBlocks.data();
 
 			// Store a linked list of free blocks in the block storage.
-			auto currentBlock = mFreeHead;
-			auto lastBlock = mFreeHead + (BlockCount - 1);
-			do
+			for (auto& block : mBlocks)
 			{
-				currentBlock->pNext = currentBlock + 1;
+				block.pNext = &block + 1;
 			}
-			while (++currentBlock < lastBlock);
-			lastBlock->pNext = nullptr;
+			mBlocks[BlockCount - 1].pNext = nullptr;
 
-			// Store pointers to the first and last blocks for use in the Contains method.
+			// Cache first and last void pointers for use in contains member function.
 			mBlocksFirst = mFreeHead;
-			mBlocksLast = lastBlock;
+			mBlocksLast = mFreeHead + (BlockCount - 1);
 		}
 
 		~BlockAllocator(void)
@@ -106,16 +81,14 @@ namespace BM
 				returnPtr = mFreeHead;
 				mFreeHead = mFreeHead->pNext;
 				--mFreeCount;
+
+				if (mFreeCount < mLowTideMark)
+					mLowTideMark = mFreeCount;
 			}
 
 			mLock.unlock();
 
-			if (returnPtr != nullptr)
-			{
-				if (mFreeCount < mLowTideMark)
-					mLowTideMark = mFreeCount;
-			}
-			else
+			if (returnPtr == nullptr)
 				std::fprintf(stderr, "[BM::BlockAllocator] Out of blocks: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
 
 			return returnPtr;
