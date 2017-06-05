@@ -1,6 +1,7 @@
-#pragma once
+#ifndef _BM_BLOCKALLOCATOR_H_BA69E10F_97F3_4AA7_9751_BE68CD182529_
+#define _BM_BLOCKALLOCATOR_H_BA69E10F_97F3_4AA7_9751_BE68CD182529_
 
-// Copyright Bruce McNeish 2017
+// Copyright (c) 2017 Bruce McNeish 
 // Distributed under the MIT License, see accompanying file LICENSE.txt
 
 #include "bmAtomicSpinLock.h"
@@ -10,7 +11,7 @@
 #include <cassert>
 #include <array>
 
-namespace BM
+namespace bm
 {
 	template<const unsigned int BytesPerBlock, const unsigned int BlockCount>
 	class BlockAllocator
@@ -25,7 +26,7 @@ namespace BM
 			Block* pNext;
 		};
 
-		static_assert(BytesPerBlock >= sizeof(Block*), "BytesPerBlock too small.  Needs to be at least the size of a pointer.");
+		static_assert(BytesPerBlock >= sizeof(Block*), "BytesPerBlock too small. Needs to be at least the size of a pointer.");
 		static_assert(BlockCount > 0, "BlockCount cannot be 0.  Suggest 1024 minimum.");
 
 		Block* mFreeHead;
@@ -44,7 +45,7 @@ namespace BM
 		{
 			mFreeHead = mBlocks.data();
 
-			// Store a linked list of free blocks in the block storage.
+			// Ensure O(1) allocation by using free blocks to store a linked list.
 			for (auto& block : mBlocks)
 			{
 				block.pNext = &block + 1;
@@ -111,5 +112,12 @@ namespace BM
 			}
 			return containsPtr;
 		}
+
+		inline void reportUsage()
+		{
+			std::fprintf(stdout, "[bm::BlockAllocator] BlockSize: %d Free: %d/%d\n", BytesPerBlock, mFreeCount, BlockCount);
+		}
 	};
 }
+
+#endif //ifndef _BM_BLOCKALLOCATOR_H_BA69E10F_97F3_4AA7_9751_BE68CD182529_

@@ -1,11 +1,12 @@
-#pragma once
+#ifndef _BM_ATOMICSPINLOCK_H_8E88D833_8211_4E6B_AD64_A5E845819D9E_
+#define _BM_ATOMICSPINLOCK_H_8E88D833_8211_4E6B_AD64_A5E845819D9E_
 
-// Copyright Bruce McNeish 2017
+// Copyright (c) 2017 Bruce McNeish 
 // Distributed under the MIT License, see accompanying file LICENSE.txt
 
 #include <atomic>
 
-namespace BM
+namespace bm
 {
 	class AtomicSpinLock
 	{
@@ -40,3 +41,5 @@ namespace BM
 		}
 	};
 }
+
+#endif //ifndef _BM_ATOMICSPINLOCK_H_8E88D833_8211_4E6B_AD64_A5E845819D9E_
