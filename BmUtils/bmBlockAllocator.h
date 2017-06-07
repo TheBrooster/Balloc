@@ -5,6 +5,7 @@
 // Distributed under the MIT License, see accompanying file LICENSE.txt
 
 #include "bmAtomicSpinLock.h"
+#include "bmDebugBreak.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -37,11 +38,15 @@ namespace bm
 
 		void* mBlocksFirst;
 		void* mBlocksLast;
+		uint64_t mTotalAllocationCount;
+		bool mReportedOutOfBlocks;
 
 	public:
 		BlockAllocator(void)
 			: mFreeCount(BlockCount)
 			, mLowTideMark(BlockCount)
+			, mTotalAllocationCount(0)
+			, mReportedOutOfBlocks(false)
 		{
 			mFreeHead = mBlocks.data();
 
@@ -61,8 +66,7 @@ namespace bm
 		{
 			if (mFreeCount != BlockCount)
 			{
-				std::fprintf(stderr, "[BM::BlockAllocator] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
-				assert(false);
+				DebugBreak(true, "[BM::BlockAllocator] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
 			}
 		}
 
@@ -82,6 +86,7 @@ namespace bm
 				returnPtr = mFreeHead;
 				mFreeHead = mFreeHead->pNext;
 				--mFreeCount;
+				++mTotalAllocationCount;
 
 				if (mFreeCount < mLowTideMark)
 					mLowTideMark = mFreeCount;
@@ -89,8 +94,11 @@ namespace bm
 
 			mLock.unlock();
 
-			if (returnPtr == nullptr)
+			if (returnPtr == nullptr && mReportedOutOfBlocks == false)
+			{
 				std::fprintf(stderr, "[BM::BlockAllocator] Out of blocks: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
+				mReportedOutOfBlocks = true;
+			}
 
 			return returnPtr;
 		}
@@ -113,9 +121,9 @@ namespace bm
 			return containsPtr;
 		}
 
-		inline void reportUsage()
+		inline void reportUsage() const
 		{
-			std::fprintf(stdout, "[bm::BlockAllocator] BlockSize: %d Free: %d/%d\n", BytesPerBlock, mFreeCount, BlockCount);
+			std::fprintf(stdout, "[bm::BlockAllocator] BlockSize: %d Free: %d/%d Total Allocation Count: %ld\n", BytesPerBlock, mFreeCount, BlockCount, mTotalAllocationCount);
 		}
 	};
 }

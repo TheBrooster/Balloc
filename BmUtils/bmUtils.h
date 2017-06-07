@@ -7,5 +7,6 @@
 #include "bmAtomicSpinLock.h"
 #include "bmBlockAllocator.h"
 #include "bmCRC.h"
+#include "bmDebugBreak.h"
 
 #endif // ifndef _BM_UTILS_H_D34EE157_67D0_4687_994E_CF2A20D6EEE8_
