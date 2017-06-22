@@ -14,15 +14,24 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Y:\Projects\BmBalloc\BmUtils\BmAtomicSpinLock.h">
+    <ClInclude Include="..\..\BmUtils\bmDebugBreak.h">
       <Filter>Header Files\BmUtils</Filter>
     </ClInclude>
-    <ClInclude Include="Y:\Projects\BmBalloc\BmUtils\BmBlockAllocator.h">
+    <ClInclude Include="..\..\BmUtils\bmUtils.h">
+      <Filter>Header Files\BmUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\BmUtils\bmCRC.h">
+      <Filter>Header Files\BmUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\BmUtils\bmAtomicSpinLock.h">
+      <Filter>Header Files\BmUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\BmUtils\bmBlockAllocator.h">
       <Filter>Header Files\BmUtils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Y:\Projects\BmBalloc\builds\visualStudio\main.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

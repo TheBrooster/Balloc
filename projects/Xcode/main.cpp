@@ -6,7 +6,7 @@
 //  Copyright © 2017 Bruce McNeish. All rights reserved.
 //
 
-#include "../../BmUtils/BmBlockAllocator.h"
+#include "../../BmUtils/bmUtils.h"
 
 #include <vector>
 #include <random>
@@ -14,11 +14,14 @@
 
 int main(int argc, const char * argv[])
 {
+    bm::DebugBreak(false, "false");
+    bm::DebugBreak(true, "true");
+    
     char* dummy = new char();
     
     std::vector<void*> allocated;
     
-    BM::BlockAllocator<16, 1024> blockAllocator;
+    bm::BlockAllocator<16, 1024> blockAllocator;
     for ( int i = 0; i < 1026; ++i)
         allocated.push_back(blockAllocator.allocate());
     
@@ -28,7 +31,7 @@ int main(int argc, const char * argv[])
     for ( auto ptr : allocated)
         blockAllocator.free(ptr);
     
-    BM::BlockAllocator<16, 1024> blockAllocator2;
+    bm::BlockAllocator<16, 1024> blockAllocator2;
     void* ptr = blockAllocator.allocate();
     void* ptr2 = blockAllocator2.allocate();
     blockAllocator2.free(ptr);
