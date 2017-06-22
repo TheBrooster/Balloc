@@ -11,8 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{BE8B6781-0E69-4E04-A8D4-88691B0378AE}</ProjectGuid>
-    <RootNamespace>BmBalloc</RootNamespace>
+    <ProjectGuid>{126C50F1-6429-4FD3-A1BF-7BAFA35A63BA}</ProjectGuid>
+    <RootNamespace>bmUtils</RootNamespace>
     <ProjectName>bmUtils</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
