@@ -1,38 +1,28 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
-    </Filter>
-    <Filter Include="Header Files\BmUtils">
+    <Filter Include="BmUtils">
       <UniqueIdentifier>{fcf03c79-d8b4-41de-bbfe-ff59001405eb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\BmUtils\bmDebugBreak.h">
-      <Filter>Header Files\BmUtils</Filter>
+      <Filter>BmUtils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\BmUtils\bmUtils.h">
-      <Filter>Header Files\BmUtils</Filter>
+      <Filter>BmUtils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\BmUtils\bmCRC.h">
-      <Filter>Header Files\BmUtils</Filter>
+      <Filter>BmUtils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\BmUtils\bmAtomicSpinLock.h">
-      <Filter>Header Files\BmUtils</Filter>
+      <Filter>BmUtils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\BmUtils\bmBlockAllocator.h">
-      <Filter>Header Files\BmUtils</Filter>
+      <Filter>BmUtils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
 </Project>

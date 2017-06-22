@@ -30,7 +30,7 @@
 		32E63E3D1EFC55E8004F531D /* bmCRC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bmCRC.h; path = ../../BmUtils/bmCRC.h; sourceTree = "<group>"; };
 		32E63E3E1EFC55E8004F531D /* bmDebugBreak.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bmDebugBreak.h; path = ../../BmUtils/bmDebugBreak.h; sourceTree = "<group>"; };
 		32E63E3F1EFC55E8004F531D /* bmUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bmUtils.h; path = ../../BmUtils/bmUtils.h; sourceTree = "<group>"; };
-		32E63E401EFC55E8004F531D /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = LICENSE.txt; path = ../../../BmUtils/LICENSE.txt; sourceTree = "<group>"; };
+		32E63E401EFC55E8004F531D /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = LICENSE.txt; path = ../../BmUtils/LICENSE.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
