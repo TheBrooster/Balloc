@@ -7,12 +7,6 @@
 #include <cstdarg>
 #include <cstdio>
 
-#ifdef _MSC_VER
-# define BREAKPOINT __debugbreak()
-#else
-# define BREAKPOINT asm("int $3")
-#endif
-
 namespace bm
 {
 	class DebugBreak
@@ -21,10 +15,19 @@ namespace bm
 		DebugBreak(const DebugBreak& other) {} // non construction-copyable
 		DebugBreak& operator=(const DebugBreak&) { return *this; } // non copyable
 
+		inline void Break() const
+		{
+#if defined(_DURANGO) || defined(__ORBIS__) || defined(_MSC_VER)
+			__debugbreak();
+#else
+# error UNDEFINED PLATFORM
+#endif
+		}
+
 	public:
 		DebugBreak(void)
 		{
-			BREAKPOINT;
+			Break();
 		}
 
 		DebugBreak(bool statement, const char* fmt, ...)
@@ -37,10 +40,12 @@ namespace bm
 				std::fprintf(stderr, fmt, ap);
 				va_end(ap);
 
-				BREAKPOINT;
+				Break();
 			}
 		}
 	};
 }
+
+#undef BREAKPOINT
 
 #endif //ifndef _BM_DEBUGBREAK_H_F74CF32F_EF5F_451E_8EE3_6A400AC4044B_

@@ -56,27 +56,31 @@ namespace bm
 
 	typedef uint32_t crc32;
 	
-	// Recursive compile-time hasher
-	constexpr crc32 hash32(const uint8_t* const data, size_t length, crc32 crc)
+	// BM : Actual hashing algorithm.
+	inline constexpr crc32 hash32(crc32 crc, uint8_t byte)
 	{
-		return (length > 0) ?
-			hash32(data + 1, length - 1, ((crc >> 8) & 0xFFFFFF) ^ crc_table[(crc ^ *data) & 0xFF])
-			: crc;
+		return ((crc >> 8) & 0xFFFFFF) ^ crc_table[(crc ^ byte) & 0xFF];
 	}
 
-	// Recursive compile-time strlen
+	// BM : Recursive compile-time hasher.
+	constexpr crc32 hashData(const uint8_t* const data, size_t length, crc32 crc)
+	{
+		return length > 0 ? hashData(data + 1, length - 1, hash32(crc, *data)) : crc;
+	}
+
+	// BM : Recursive compile-time strlen.
 	constexpr size_t strlen_c(const char* const str)
 	{
 		return *str ? 1 + strlen_c(str + 1) : 0;
 	}
 
 	// BM : Compile-time CRC generator.
-	constexpr crc32 CRC_FROM_CSTR(const char* const str)
+	constexpr crc32 CSTR_TO_CRC(const char* const str)
 	{
-		return hash32((uint8_t* const)str, strlen_c(str), 0);
+		return hashData((uint8_t* const)str, strlen_c(str), 0);
 	}
 
-	// BM : Run-time CRC generator for a buffer...
+	// BM : Run-time CRC generator for a buffer.
 	inline crc32 bufferToCrc(const uint8_t* const pBuffer, size_t bufferLength)
 	{
 		crc32 crc = 0;
@@ -86,14 +90,14 @@ namespace bm
 			const uint8_t* end = pBuffer + bufferLength;
 			while (data < end)
 			{
-				crc = ((crc >> 8) & 0xFFFFFF) ^ crc_table[((crc ^ *data) & 0xFF)];
+				crc = hash32(crc, *data);
 				++data;
 			}
 		}
 		return crc;
 	}
 
-	// BM : ...and a null terminated C string.
+	// BM : Run-time CRC generator for a null terminated C string.
 	inline crc32 stringToCrc(const char* const pString)
 	{
 		return bufferToCrc((uint8_t* const)pString, strlen(pString));
