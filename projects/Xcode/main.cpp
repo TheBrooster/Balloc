@@ -14,8 +14,8 @@
 
 int main(int argc, const char * argv[])
 {
-    bm::DebugBreak(false, "false");
-    bm::DebugBreak(true, "true");
+    bm::DebugBreak(false, "false\n");
+    bm::DebugBreak(true, "true\n");
     
     char* dummy = new char();
     
@@ -28,7 +28,7 @@ int main(int argc, const char * argv[])
     auto engine = std::default_random_engine();
     std::shuffle(allocated.begin(), allocated.end(), engine);
     
-    for ( auto ptr : allocated)
+    for (auto ptr : allocated)
         blockAllocator.free(ptr);
     
     bm::BlockAllocator<16, 1024> blockAllocator2;
@@ -37,6 +37,8 @@ int main(int argc, const char * argv[])
     blockAllocator2.free(ptr);
     blockAllocator.free(ptr2);
     blockAllocator.free(ptr);
+    blockAllocator.free(ptr);
+    blockAllocator2.free(ptr2);
     blockAllocator2.free(ptr2);
     blockAllocator.free(dummy);
     

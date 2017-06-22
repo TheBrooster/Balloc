@@ -9,7 +9,6 @@
 
 #include <cstdint>
 #include <cstdio>
-#include <cassert>
 #include <array>
 
 #ifdef DEBUG
@@ -18,7 +17,7 @@
 
 namespace bm
 {
-	template<const unsigned int BytesPerBlock, const unsigned int BlockCount>
+	template<const unsigned int BlockSize, const unsigned int BlockCount>
 	class BlockAllocator
 	{
 	private:
@@ -27,21 +26,23 @@ namespace bm
 
 		union Block
 		{
-			uint8_t bytes[BytesPerBlock];
+			uint8_t bytes[BlockSize];
 			Block* pNext;
 		};
 
-		static_assert(BytesPerBlock >= sizeof(Block*), "BytesPerBlock too small. Needs to be at least the size of a pointer.");
+		static_assert(BlockSize >= sizeof(Block*), "BlockSize too small. Needs to be at least the size of a pointer.");
 		static_assert(BlockCount > 0, "BlockCount cannot be 0.  Suggest 1024 minimum.");
 
-		Block* mFreeHead;
-		AtomicSpinLock mLock;
 		std::array<Block, BlockCount> mBlocks;
-
+        std::array<bool, BlockCount> mAlreadyFreed;
+        AtomicSpinLock mLock;
+        
+        Block* mFreeHead;
 		void* mBlocksFirst;
 		void* mBlocksLast;
 
 		bool mReportedOutOfBlocks;
+
 #ifdef TRACK_USAGE
 		unsigned int mFreeCount;
 		unsigned int mLowTideMark;
@@ -61,9 +62,8 @@ namespace bm
 
 			// Ensure O(1) allocation by using free blocks to store a linked list.
 			for (auto& block : mBlocks)
-			{
 				block.pNext = &block + 1;
-			}
+
 			mBlocks[BlockCount - 1].pNext = nullptr;
 
 			// Cache first and last void pointers for use in contains member function.
@@ -76,7 +76,7 @@ namespace bm
 #ifdef TRACK_USAGE
 			if (mFreeCount != BlockCount)
 			{
-				DebugBreak(true, "[BM::BlockAllocator] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
+				DebugBreak(true, "[bm::BlockAllocator] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BlockSize, BlockCount);
 			}
 #endif
 		}
@@ -96,6 +96,10 @@ namespace bm
 			{
 				returnPtr = mFreeHead;
 				mFreeHead = mFreeHead->pNext;
+                
+                auto index = static_cast<Block*>(returnPtr) - mBlocks.data();
+                mAlreadyFreed[index] = false;
+                
 #ifdef TRACK_USAGE
 				--mFreeCount;
 				++mTotalAllocationCount;
@@ -108,7 +112,7 @@ namespace bm
 
 			if (returnPtr == nullptr && mReportedOutOfBlocks == false)
 			{
-				std::fprintf(stderr, "[BM::BlockAllocator] Out of blocks: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
+				std::fprintf(stderr, "[bm::BlockAllocator] Out of blocks: BytesPerBlock: %d NumBlocks: %d\n", BlockSize, BlockCount);
 				mReportedOutOfBlocks = true;
 			}
 
@@ -120,16 +124,22 @@ namespace bm
 			bool containsPtr = contains(ptr);
 			if (containsPtr)
 			{
-				auto blockPtr = static_cast<Block*>(ptr);
+                mLock.lock();
 
-				mLock.lock();
+                auto blockPtr = static_cast<Block*>(ptr);
+                auto index = blockPtr - mBlocks.data();
+                if (mAlreadyFreed[index] == false)
+                {
+                    mAlreadyFreed[index] = true;
 
-				blockPtr->pNext = mFreeHead;
-				mFreeHead = blockPtr;
+                    blockPtr->pNext = mFreeHead;
+                    mFreeHead = blockPtr;
 #ifdef TRACK_USAGE
-				++mFreeCount;
+                    ++mFreeCount;
 #endif
-				mLock.unlock();
+                }
+                
+                mLock.unlock();
 			}
 			return containsPtr;
 		}
@@ -137,7 +147,7 @@ namespace bm
 		inline void reportUsage() const
 		{
 #ifdef TRACK_USAGE
-			std::fprintf(stdout, "[bm::BlockAllocator] BlockSize: %d Free: %d/%d Total Allocation Count: %ld\n", BytesPerBlock, mFreeCount, BlockCount, mTotalAllocationCount);
+			std::fprintf(stdout, "[bm::BlockAllocator] BlockSize: %d Free: %d/%d Total Allocation Count: %ld\n", BlockSize, mFreeCount, BlockCount, mTotalAllocationCount);
 #endif
 		}
 	};
