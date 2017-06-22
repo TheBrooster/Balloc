@@ -12,6 +12,10 @@
 #include <cassert>
 #include <array>
 
+#ifdef DEBUG
+# define TRACK_USAGE
+#endif
+
 namespace bm
 {
 	template<const unsigned int BytesPerBlock, const unsigned int BlockCount>
@@ -32,21 +36,26 @@ namespace bm
 
 		Block* mFreeHead;
 		AtomicSpinLock mLock;
-		unsigned int mFreeCount;
-		unsigned int mLowTideMark;
 		std::array<Block, BlockCount> mBlocks;
 
 		void* mBlocksFirst;
 		void* mBlocksLast;
-		uint64_t mTotalAllocationCount;
+
 		bool mReportedOutOfBlocks;
+#ifdef TRACK_USAGE
+		unsigned int mFreeCount;
+		unsigned int mLowTideMark;
+		uint64_t mTotalAllocationCount;
+#endif
 
 	public:
 		BlockAllocator(void)
-			: mFreeCount(BlockCount)
+			: mReportedOutOfBlocks(false)
+#ifdef TRACK_USAGE
+			, mFreeCount(BlockCount)
 			, mLowTideMark(BlockCount)
 			, mTotalAllocationCount(0)
-			, mReportedOutOfBlocks(false)
+#endif
 		{
 			mFreeHead = mBlocks.data();
 
@@ -64,10 +73,12 @@ namespace bm
 
 		~BlockAllocator(void)
 		{
+#ifdef TRACK_USAGE
 			if (mFreeCount != BlockCount)
 			{
 				DebugBreak(true, "[BM::BlockAllocator] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BytesPerBlock, BlockCount);
 			}
+#endif
 		}
 
 		inline bool contains(const void* const ptr) const
@@ -85,11 +96,12 @@ namespace bm
 			{
 				returnPtr = mFreeHead;
 				mFreeHead = mFreeHead->pNext;
+#ifdef TRACK_USAGE
 				--mFreeCount;
 				++mTotalAllocationCount;
-
 				if (mFreeCount < mLowTideMark)
 					mLowTideMark = mFreeCount;
+#endif
 			}
 
 			mLock.unlock();
@@ -114,8 +126,9 @@ namespace bm
 
 				blockPtr->pNext = mFreeHead;
 				mFreeHead = blockPtr;
+#ifdef TRACK_USAGE
 				++mFreeCount;
-
+#endif
 				mLock.unlock();
 			}
 			return containsPtr;
@@ -123,7 +136,9 @@ namespace bm
 
 		inline void reportUsage() const
 		{
+#ifdef TRACK_USAGE
 			std::fprintf(stdout, "[bm::BlockAllocator] BlockSize: %d Free: %d/%d Total Allocation Count: %ld\n", BytesPerBlock, mFreeCount, BlockCount, mTotalAllocationCount);
+#endif
 		}
 	};
 }
