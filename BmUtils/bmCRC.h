@@ -4,6 +4,8 @@
 // Copyright (c) 2017 Bruce McNeish 
 // Distributed under the MIT License, see accompanying file LICENSE.txt
 
+#include <cassert>
+
 namespace bm
 {
 	static const uint32_t crc_table[256] = {
@@ -54,46 +56,47 @@ namespace bm
 
 	typedef uint32_t crc32;
 	
-	// Constexpr implementation and helpers
-	constexpr crc32 hash32_impl(const uint8_t* const data, size_t length, uint32_t crc)
+	// Recursive compile-time hasher
+	constexpr crc32 hash32(const uint8_t* const data, size_t length, crc32 crc)
 	{
-		return length > 0 ?
-			hash32_impl(data + 1, length - 1, (crc >> 8) ^ crc_table[(crc & 0xFF) ^ *data])
+		return (length > 0) ?
+			hash32(data + 1, length - 1, ((crc >> 8) & 0xFFFFFF) ^ crc_table[(crc ^ *data) & 0xFF])
 			: crc;
 	}
 
-	constexpr crc32 hash32(const uint8_t* const data, size_t length)
-	{
-		return ~hash32_impl(data, length, UINT32_MAX);
-	}
-
+	// Recursive compile-time strlen
 	constexpr size_t strlen_c(const char* const str)
 	{
 		return *str ? 1 + strlen_c(str + 1) : 0;
 	}
 
-	// BM : Compile-time CRC generator
+	// BM : Compile-time CRC generator.
 	constexpr crc32 CRC_FROM_CSTR(const char* const str)
 	{
-		return hash32((uint8_t* const)str, strlen_c(str));
+		return hash32((uint8_t* const)str, strlen_c(str), 0);
 	}
 
-	// BM : Run-time CRC generator
-	inline crc32 bufferToCrc(const char* pBuffer, size_t bufferLength)
+	// BM : Run-time CRC generator for a buffer...
+	inline crc32 bufferToCrc(const uint8_t* const pBuffer, size_t bufferLength)
 	{
 		crc32 crc = 0;
-		if (pBuffer != nullptr && bufferLength > 0)
+		if (pBuffer != nullptr)
 		{
-			const char* pointer = pBuffer;
-			const char* endPointer = pBuffer + bufferLength;
-			do
+			const uint8_t* data = pBuffer;
+			const uint8_t* end = pBuffer + bufferLength;
+			while (data < end)
 			{
-				unsigned int k = ((crc ^ *pointer) & 0x000000FF);
-				crc = ((crc >> 8) & 0x00FFFFFF) ^ crc_table[k];
+				crc = ((crc >> 8) & 0xFFFFFF) ^ crc_table[((crc ^ *data) & 0xFF)];
+				++data;
 			}
-			while (++pointer< endPointer);
 		}
 		return crc;
+	}
+
+	// BM : ...and a null terminated C string.
+	inline crc32 stringToCrc(const char* const pString)
+	{
+		return bufferToCrc((uint8_t* const)pString, strlen(pString));
 	}
 }
 
