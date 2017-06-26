@@ -20,7 +20,7 @@ namespace bm
 #if defined(_DURANGO) || defined(__ORBIS__) || defined(_MSC_VER)
 			__debugbreak();
 #elif defined(__APPLE__)
-            __asm__("int $3");
+			__asm__("int $3");
 #else
 # error UNDEFINED PLATFORM
 #endif
