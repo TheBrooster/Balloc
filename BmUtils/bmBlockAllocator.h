@@ -34,10 +34,10 @@ namespace bm
 		static_assert(BlockCount > 0, "BlockCount cannot be 0.  Suggest 1024 minimum.");
 
 		std::array<Block, BlockCount> mBlocks;
-        std::array<bool, BlockCount> mAlreadyFreed;
-        AtomicSpinLock mLock;
+		std::array<bool, BlockCount> mAlreadyFreed;
+		AtomicSpinLock mLock;
         
-        Block* mFreeHead;
+		Block* mFreeHead;
 		void* mBlocksFirst;
 		void* mBlocksLast;
 
@@ -97,8 +97,8 @@ namespace bm
 				returnPtr = mFreeHead;
 				mFreeHead = mFreeHead->pNext;
                 
-                auto index = static_cast<Block*>(returnPtr) - mBlocks.data();
-                mAlreadyFreed[index] = false;
+				auto index = static_cast<Block*>(returnPtr) - mBlocks.data();
+				mAlreadyFreed[index] = false;
                 
 #ifdef TRACK_USAGE
 				--mFreeCount;
@@ -124,22 +124,22 @@ namespace bm
 			bool containsPtr = contains(ptr);
 			if (containsPtr)
 			{
-                mLock.lock();
+				mLock.lock();
 
-                auto blockPtr = static_cast<Block*>(ptr);
-                auto index = blockPtr - mBlocks.data();
-                if (mAlreadyFreed[index] == false)
-                {
-                    mAlreadyFreed[index] = true;
+				auto blockPtr = static_cast<Block*>(ptr);
+				auto index = blockPtr - mBlocks.data();
+				if (mAlreadyFreed[index] == false)
+				{
+					mAlreadyFreed[index] = true;
 
-                    blockPtr->pNext = mFreeHead;
-                    mFreeHead = blockPtr;
+					blockPtr->pNext = mFreeHead;
+					mFreeHead = blockPtr;
 #ifdef TRACK_USAGE
-                    ++mFreeCount;
+					++mFreeCount;
 #endif
-                }
+				}
                 
-                mLock.unlock();
+				mLock.unlock();
 			}
 			return containsPtr;
 		}
