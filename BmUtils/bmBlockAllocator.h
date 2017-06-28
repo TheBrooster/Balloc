@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <array>
+#include <bitset>
 
 #ifdef DEBUG
 # define TRACK_USAGE
@@ -34,9 +35,9 @@ namespace bm
 		static_assert(BlockCount > 0, "BlockCount cannot be 0.  Suggest 1024 minimum.");
 
 		std::array<Block, BlockCount> mBlocks;
-		std::array<bool, BlockCount> mAlreadyFreed;
+		std::bitset<BlockCount> mInUse;
 		AtomicSpinLock mLock;
-        
+
 		Block* mFreeHead;
 		void* mBlocksFirst;
 		void* mBlocksLast;
@@ -96,10 +97,10 @@ namespace bm
 			{
 				returnPtr = mFreeHead;
 				mFreeHead = mFreeHead->pNext;
-                
+
 				auto index = static_cast<Block*>(returnPtr) - mBlocks.data();
-				mAlreadyFreed[index] = false;
-                
+				mInUse[index] = true;
+
 #ifdef TRACK_USAGE
 				--mFreeCount;
 				++mTotalAllocationCount;
@@ -128,9 +129,9 @@ namespace bm
 
 				auto blockPtr = static_cast<Block*>(ptr);
 				auto index = blockPtr - mBlocks.data();
-				if (mAlreadyFreed[index] == false)
+				if (mInUse[index])
 				{
-					mAlreadyFreed[index] = true;
+					mInUse[index] = false;
 
 					blockPtr->pNext = mFreeHead;
 					mFreeHead = blockPtr;
@@ -138,7 +139,11 @@ namespace bm
 					++mFreeCount;
 #endif
 				}
-                
+				else
+				{
+					std::fprintf(stderr, "[bm::BlockAllocator] Double free attempt detected. BlockSize: %d\n", BlockSize);
+				}
+
 				mLock.unlock();
 			}
 			return containsPtr;
