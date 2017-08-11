@@ -54,7 +54,7 @@ namespace bm
 		0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d,
 	};
 
-	typedef uint32_t crc32;
+	using crc32 = uint32_t;
 	
 	// BM : Actual hashing algorithm.
 	inline constexpr crc32 hash32(crc32 crc, uint8_t byte)
