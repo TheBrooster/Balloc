@@ -19,7 +19,7 @@ namespace bm
 		}
 
 	private:
-		static int NextIndex()
+		static unsigned int NextIndex()
 		{
 			static std::atomic<unsigned int> mIndex;
 			return mIndex++;
