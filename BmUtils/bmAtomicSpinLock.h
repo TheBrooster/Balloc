@@ -10,35 +10,23 @@ namespace bm
 {
 	class AtomicSpinLock
 	{
-	private:
-		AtomicSpinLock(const AtomicSpinLock& other) {} // non construction-copyable
-		AtomicSpinLock& operator=(const AtomicSpinLock&) { return *this; } // non copyable
-
-		std::atomic<bool> mLocked;
-
 	public:
-		AtomicSpinLock()
-			: mLocked(false)
-		{}
-
-		~AtomicSpinLock()
-		{
-			unlock();
-		}
+		AtomicSpinLock() = default;
+		AtomicSpinLock(const AtomicSpinLock& other) = delete;
+		AtomicSpinLock& operator=(const AtomicSpinLock&) = delete;
 
 		inline void lock()
 		{
-			bool expected = false;
-			while (!mLocked.compare_exchange_weak(expected, true))
-			{
-				expected = false;
-			}
+			while (mLocked.exchange(true));
 		}
 
 		inline void unlock()
 		{
-			mLocked.store(false);
+			mLocked = false;
 		}
+
+	private:
+		std::atomic<bool> mLocked{ false };
 	};
 }
 
