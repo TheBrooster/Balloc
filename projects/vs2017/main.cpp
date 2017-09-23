@@ -6,8 +6,8 @@
 
 int main(int argc, const char * argv[])
 {
-	bm::DebugBreak(false, "false");
-	bm::DebugBreak(true, "true");
+	bm::Assert(false, "false");
+	bm::Assert(true, "true");
 
 	char* dummy = new char();
 	
