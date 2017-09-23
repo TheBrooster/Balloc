@@ -34,5 +34,15 @@ int main(int argc, const char * argv[])
 
 	delete dummy;
 
+	unsigned int iIndex = bm::TypeIndex::Get<int>();
+	unsigned int fIndex = bm::TypeIndex::Get<float>();
+	unsigned int dIndex = bm::TypeIndex::Get<double>();
+	unsigned int aIndex = bm::TypeIndex::Get<bm::AtomicSpinLock>();
+
+	unsigned int aIndex2 = bm::TypeIndex::Get<bm::AtomicSpinLock>();
+	unsigned int dIndex2 = bm::TypeIndex::Get<double>();
+	unsigned int fIndex2 = bm::TypeIndex::Get<float>();
+	unsigned int iIndex2 = bm::TypeIndex::Get<int>();
+	
 	return 0;
 }
