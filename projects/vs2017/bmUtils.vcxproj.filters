@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="..\..\BmUtils\bmCRC.h" />
+    <ClInclude Include="..\..\BmUtils\bmTrie.h" />
+    <ClInclude Include="..\..\BmUtils\bmTypeIndex.h" />
+    <ClInclude Include="..\..\BmUtils\bmUtils.h" />
+    <ClInclude Include="..\..\BmUtils\bmAtomicSpinLock.h" />
+    <ClInclude Include="..\..\BmUtils\bmPoolAllocator.h" />
+    <ClInclude Include="..\..\BmUtils\bmAssert.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Test">
+      <UniqueIdentifier>{01a88422-0b74-4ed9-b5fc-531253d53dba}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\Tests\main.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

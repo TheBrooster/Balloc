@@ -5,7 +5,7 @@
 // Distributed under the MIT License, see accompanying file LICENSE.txt
 
 #include "bmAtomicSpinLock.h"
-#include "bmDebugBreak.h"
+#include "bmAssert.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -19,11 +19,11 @@
 namespace bm
 {
 	template<const unsigned int BlockSize, const unsigned int BlockCount>
-	class BlockAllocator
+	class PoolAllocator
 	{
 	private:
-		BlockAllocator(const BlockAllocator& other) {} // non construction-copyable
-		BlockAllocator& operator=(const BlockAllocator&) { return *this; } // non copyable
+		PoolAllocator(const PoolAllocator& other) = delete;
+		PoolAllocator& operator=(const PoolAllocator&) = delete;
 
 		union Block
 		{
@@ -51,7 +51,7 @@ namespace bm
 #endif
 
 	public:
-		BlockAllocator(void)
+		PoolAllocator(void)
 			: mReportedOutOfBlocks(false)
 #ifdef TRACK_USAGE
 			, mFreeCount(BlockCount)
@@ -72,7 +72,7 @@ namespace bm
 			mBlocksLast = mFreeHead + (BlockCount - 1);
 		}
 
-		~BlockAllocator(void)
+		~PoolAllocator(void)
 		{
 #ifdef TRACK_USAGE
 			if (mFreeCount != BlockCount)
@@ -125,10 +125,11 @@ namespace bm
 			bool containsPtr = contains(ptr);
 			if (containsPtr)
 			{
+				Block* blockPtr = static_cast<Block*>(ptr);
+				size_t index = blockPtr - mBlocks.data();
+
 				mLock.lock();
 
-				auto blockPtr = static_cast<Block*>(ptr);
-				auto index = blockPtr - mBlocks.data();
 				if (mInUse[index])
 				{
 					mInUse[index] = false;
