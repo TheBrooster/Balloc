@@ -1,4 +1,6 @@
-#include "../BmUtils/bmUtils.h"
+#include "../BmUtils/bmAssert.h"
+#include "../BmUtils/bmPoolAllocator.h"
+#include "../BmUtils/bmTypeIndex.h"
 
 #include <vector>
 #include <random>

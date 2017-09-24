@@ -11,6 +11,8 @@
 #include <cstdio>
 #include <array>
 #include <bitset>
+#include <mutex>
+#include <algorithm>
 
 #ifdef DEBUG
 # define TRACK_USAGE
@@ -75,10 +77,7 @@ namespace bm
 		~PoolAllocator(void)
 		{
 #ifdef TRACK_USAGE
-			if (mFreeCount != BlockCount)
-			{
-				DebugBreak(true, "[bm::BlockAllocator] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BlockSize, BlockCount);
-			}
+			bm::Assert(mFreeCount == BlockCount, "[bm::PoolAllocator] Not all blocks freed, dangling pointer danger: BytesPerBlock: %d NumBlocks: %d\n", BlockSize, BlockCount);
 #endif
 		}
 
@@ -87,12 +86,20 @@ namespace bm
 			return (ptr >= mBlocksFirst) && (ptr <= mBlocksLast);
 		}
 
+		inline void* allocate_lock_free()
+		{
+			return nullptr;
+		}
+
+		inline void release_lock_free(void* ptr)
+		{
+		}
+
 		inline void* allocate()
 		{
 			void* returnPtr = nullptr;
 
-			mLock.lock();
-
+			std::lock_guard<bm::AtomicSpinLock> l(mLock);
 			if (mFreeHead != nullptr)
 			{
 				returnPtr = mFreeHead;
@@ -104,16 +111,13 @@ namespace bm
 #ifdef TRACK_USAGE
 				--mFreeCount;
 				++mTotalAllocationCount;
-				if (mFreeCount < mLowTideMark)
-					mLowTideMark = mFreeCount;
+				mLowTideMark = std::min(mFreeCount, mLowTideMark);
 #endif
 			}
 
-			mLock.unlock();
-
 			if (returnPtr == nullptr && mReportedOutOfBlocks == false)
 			{
-				std::fprintf(stderr, "[bm::BlockAllocator] Out of blocks: BytesPerBlock: %d NumBlocks: %d\n", BlockSize, BlockCount);
+				std::fprintf(stderr, "[bm::PoolAllocator] Out of blocks: BytesPerBlock: %d NumBlocks: %d\n", BlockSize, BlockCount);
 				mReportedOutOfBlocks = true;
 			}
 
@@ -128,8 +132,7 @@ namespace bm
 				Block* blockPtr = static_cast<Block*>(ptr);
 				size_t index = blockPtr - mBlocks.data();
 
-				mLock.lock();
-
+				std::lock_guard<bm::AtomicSpinLock> l(mLock);
 				if (mInUse[index])
 				{
 					mInUse[index] = false;
@@ -142,10 +145,8 @@ namespace bm
 				}
 				else
 				{
-					std::fprintf(stderr, "[bm::BlockAllocator] Double free attempt detected. BlockSize: %d\n", BlockSize);
+					std::fprintf(stderr, "[bm::PoolAllocator] Double free attempt detected. BlockSize: %d\n", BlockSize);
 				}
-
-				mLock.unlock();
 			}
 			return containsPtr;
 		}
@@ -153,7 +154,7 @@ namespace bm
 		inline void reportUsage() const
 		{
 #ifdef TRACK_USAGE
-			std::fprintf(stdout, "[bm::BlockAllocator] BlockSize: %d Free: %d/%d Total Allocation Count: %ld\n", BlockSize, mFreeCount, BlockCount, mTotalAllocationCount);
+			std::fprintf(stdout, "[bm::PoolAllocator] BlockSize: %d Free: %d/%d Total Allocation Count: %ld\n", BlockSize, mFreeCount, BlockCount, mTotalAllocationCount);
 #endif
 		}
 	};
