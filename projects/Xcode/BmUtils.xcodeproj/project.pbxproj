@@ -23,14 +23,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		32661EC5220FA86A00F9D9A1 /* BmUtils */ = {isa = PBXFileReference; lastKnownFileType = folder; name = BmUtils; path = ../../BmUtils; sourceTree = "<group>"; };
 		32E287191EE0B02100AAA0B6 /* BmUtils */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = BmUtils; sourceTree = BUILT_PRODUCTS_DIR; };
 		32E2871C1EE0B02100AAA0B6 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		32E63E3B1EFC55E8004F531D /* bmAtomicSpinLock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bmAtomicSpinLock.h; path = ../../BmUtils/bmAtomicSpinLock.h; sourceTree = "<group>"; };
-		32E63E3C1EFC55E8004F531D /* bmBlockAllocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bmBlockAllocator.h; path = ../../BmUtils/bmBlockAllocator.h; sourceTree = "<group>"; };
-		32E63E3D1EFC55E8004F531D /* bmCRC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bmCRC.h; path = ../../BmUtils/bmCRC.h; sourceTree = "<group>"; };
-		32E63E3E1EFC55E8004F531D /* bmDebugBreak.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bmDebugBreak.h; path = ../../BmUtils/bmDebugBreak.h; sourceTree = "<group>"; };
-		32E63E3F1EFC55E8004F531D /* bmUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bmUtils.h; path = ../../BmUtils/bmUtils.h; sourceTree = "<group>"; };
-		32E63E401EFC55E8004F531D /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = LICENSE.txt; path = ../../BmUtils/LICENSE.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -48,7 +43,7 @@
 			isa = PBXGroup;
 			children = (
 				32E2871C1EE0B02100AAA0B6 /* main.cpp */,
-				32E2871B1EE0B02100AAA0B6 /* BmUtils */,
+				32661EC5220FA86A00F9D9A1 /* BmUtils */,
 				32E2871A1EE0B02100AAA0B6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -59,19 +54,6 @@
 				32E287191EE0B02100AAA0B6 /* BmUtils */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		32E2871B1EE0B02100AAA0B6 /* BmUtils */ = {
-			isa = PBXGroup;
-			children = (
-				32E63E3B1EFC55E8004F531D /* bmAtomicSpinLock.h */,
-				32E63E3C1EFC55E8004F531D /* bmBlockAllocator.h */,
-				32E63E3D1EFC55E8004F531D /* bmCRC.h */,
-				32E63E3E1EFC55E8004F531D /* bmDebugBreak.h */,
-				32E63E3F1EFC55E8004F531D /* bmUtils.h */,
-				32E63E401EFC55E8004F531D /* LICENSE.txt */,
-			);
-			path = BmUtils;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

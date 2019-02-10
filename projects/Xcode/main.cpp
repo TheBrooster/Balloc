@@ -1,6 +1,6 @@
 //
 //  main.cpp
-//  BmUtils
+//  BmUtils/Volumes/JetDrive/Downloads
 //
 //  Created by Bruce McNeish on 01/06/2017.
 //  Copyright © 2017 Bruce McNeish. All rights reserved.
@@ -14,14 +14,14 @@
 
 int main(int argc, const char * argv[])
 {
-    bm::DebugBreak(false, "false\n");
-    bm::DebugBreak(true, "true\n");
+    bm::Assert(false, "false\n");
+    bm::Assert(true, "true\n");
     
     char* dummy = new char();
     
     std::vector<void*> allocated;
     
-    bm::BlockAllocator<16, 1024> blockAllocator;
+    bm::PoolAllocator<16, 1024> blockAllocator;
     for ( int i = 0; i < 1026; ++i)
         allocated.push_back(blockAllocator.allocate());
     
@@ -31,7 +31,7 @@ int main(int argc, const char * argv[])
     for (auto ptr : allocated)
         blockAllocator.free(ptr);
     
-    bm::BlockAllocator<16, 1024> blockAllocator2;
+    bm::PoolAllocator<16, 1024> blockAllocator2;
     void* ptr = blockAllocator.allocate();
     void* ptr2 = blockAllocator2.allocate();
     blockAllocator2.free(ptr);
